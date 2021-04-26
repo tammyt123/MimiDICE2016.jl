@@ -6,6 +6,8 @@
 ############# USING MODIFIED FAIR ##################
 ####################################################
 
+using MimiFAIR, MimiDICE2016, DataFrames
+
 usg_scenario = ["USG1", "USG2", "USG3", "USG4", "USG5"]
 pulse_years = [2030, 2040, 2050, 2060]
 
@@ -81,7 +83,7 @@ for usg in usg_scenario
         append!(new_input_temp, repeat([new_input_temp[end]], length(mm[:damages, :TATM]) - length(new_input_temp)))
 
         ## set parameter in DICE model
-        MimiDICE2016.set_param!(mm.modified, :TATM, new_input_temp)
+        MimiDICE2016.update_param!(mm.modified, :TATM, new_input_temp)
 
         run(mm.modified)
 
