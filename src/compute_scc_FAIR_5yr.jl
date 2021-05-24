@@ -87,15 +87,37 @@ for usg in usg_scenario
 
         run(mm.modified)
 
-        # marginalmodel_cpc = mm[:neteconomy, :CPC]
-        # marginalmodel_c = mm[:neteconomy, :C]
-
         # --------------------------------------------------
         # calculate SCC and print result
         # --------------------------------------------------
 
         scc = MimiDICE2016._compute_scc(mm, year = pulse_year, last_year = 2300, prtp = 0.03, eta = 0.0)
         println(scc)
+
+        ## using interpolated MD instead of step function
+        last_year = 2300
+        new_years = collect(2015:1:2300)
+        ntimesteps = findfirst(isequal(last_year), dice2016_years)     # Will run through the timestep of the specified last_year
+        # marginal_damages = -1 * (mm.modified[:neteconomy, :C][1:ntimesteps] - mm.base[:neteconomy, :C][1:ntimesteps]) * 1e12 / 5*1e9    # Go from trillion$ to $, divide by pulse size
+        marginal_damages = -1 * mm[:neteconomy, :C][1:ntimesteps] * 1e12
+        
+        md_interp = MimiIWG._interpolate(marginal_damages, collect(2015:5:2300), new_years)
+
+        prtp = 0.03
+        eta = 0.0
+
+        # cpc = mm.base[:neteconomy, :CPC]
+        year_index = findfirst(isequal(pulse_year), new_years)
+
+        # constant discounting for now
+        df = zeros(length(new_years))
+        for i in 1:length(new_years)
+            if i >= year_index
+                df[i] = 1/(1+prtp)^(i-year_index)
+            end
+        end
+
+        scc = sum(df .* md_interp) 
 
     end
 end
