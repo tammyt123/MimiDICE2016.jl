@@ -1,3 +1,5 @@
+## NOTE: THIS IS AN OLD FILE, KEEPING FOR REFERENCE
+
 # 1. run baseline model (i.e. DICE2016 + FAIR without emissions pulse)
 # 2. run marginal model (i.e. DICE2016 + FAIR with emissions pulse) (make sure to scale damages by pulse size)
 # 3. calculate marginal damages and take PV to get SCC (note: set damages post 2300 to 0)
@@ -6,7 +8,7 @@
 ############# USING MODIFIED FAIR ##################
 ####################################################
 
-using MimiFAIR, MimiDICE2016, DataFrames
+using Revise, MimiFAIR, MimiDICE2016, DataFrames, MimiIWG, Mimi
 
 usg_scenario = ["USG1", "USG2", "USG3", "USG4", "USG5"]
 pulse_years = [2030, 2040, 2050, 2060]
@@ -25,8 +27,6 @@ for usg in usg_scenario
         model_years = 2015:5:2510
 
         ## FAIR (modified version)
-        using MimiFAIR
-
         # usg = "USG1"
 
         FAIR = MimiFAIR.get_model(usg_scenario = usg)
@@ -46,27 +46,22 @@ for usg in usg_scenario
 
         run(m)
 
-        # baseline_cpc = m[:neteconomy, :CPC]
-        # baseline_c = m[:neteconomy, :C]
-
         # --------------------------------------------------
         # run marginal model (i.e. add emissions pulse to FAIR)
         # --------------------------------------------------
 
         ## create DICE marginal model
         # mm = MimiDICE2016.get_model()
-        mm = Mimi.create_marginal_model(m, 5 * 1e9)
-        # mm = Mimi.create_marginal_model(m, 1e9)
+        mm = Mimi.create_marginal_model(m, 1e9)
         run(mm)
 
-        ## create FAIR marginal model -- try using create_marginal_model?
+        ## create FAIR marginal model
         FAIR_mm = MimiFAIR.get_model(usg_scenario = usg)
         run(FAIR_mm)
 
         ## set pulse year
-        # pulse_year = 2060
+        # pulse_year = 2030
         pulse_year_index = findall((in)([pulse_year]), collect(1765:2300))
-        append!(pulse_year_index, collect(pulse_year_index[1]:1:pulse_year_index[1]+3))
 
         ## perturb CO2 emissions
         new_emissions = FAIR_mm[:co2_cycle, :E_CO₂]
@@ -84,8 +79,10 @@ for usg in usg_scenario
 
         ## set parameter in DICE model
         MimiDICE2016.update_param!(mm.modified, :TATM, new_input_temp)
+        # MimiDICE2016.set_param!(mm, :TATM, new_input_temp)
 
-        run(mm.modified)
+        # run(mm.modified)
+        run(mm)
 
         # --------------------------------------------------
         # calculate SCC and print result
@@ -98,7 +95,7 @@ for usg in usg_scenario
         last_year = 2300
         new_years = collect(2015:1:2300)
         ntimesteps = findfirst(isequal(last_year), dice2016_years)     # Will run through the timestep of the specified last_year
-        # marginal_damages = -1 * (mm.modified[:neteconomy, :C][1:ntimesteps] - mm.base[:neteconomy, :C][1:ntimesteps]) * 1e12 / 5*1e9    # Go from trillion$ to $, divide by pulse size
+        # marginal_damages = -1 * (mm.modified[:neteconomy, :C][1:ntimesteps] - mm.base[:neteconomy, :C][1:ntimesteps]) * 1e12 / 1e9    # Go from trillion$ to $, divide by pulse size
         marginal_damages = -1 * mm[:neteconomy, :C][1:ntimesteps] * 1e12
         
         md_interp = MimiIWG._interpolate(marginal_damages, collect(2015:5:2300), new_years)
@@ -118,20 +115,9 @@ for usg in usg_scenario
         end
 
         scc = sum(df .* md_interp) 
-
+        
     end
 end
-
-# # save results
-# scc_usg1_5yr = MimiDICE2016._compute_scc(mm, year = pulse_year, last_year = 2300, prtp = 0.03, eta = 0.0)
-
-
-# [scc_usg1,
-# scc_usg2, 
-# scc_usg3, 
-# scc_usg4, 
-# scc_usg5]0
-
 
 
 ####################################################
@@ -147,14 +133,14 @@ m = MimiDICE2016.get_model()
 run(m)
 model_years = 2015:5:2510
 
-## FAIR (modified version)
-using MimiFAIR
+## FAIR -- make sure to switch branch to master
+using MimiFAIR 
 rcp = "RCP85"
 
 FAIR = MimiFAIR.get_model(rcp_scenario = rcp, start_year = 1765, end_year = 2300)
 run(FAIR)
 
-# FAIR[:temperature, :T] # annual temperature changes 1765-2300
+FAIR[:temperature, :T] # annual temperature changes 1765-2300
 fair_years = collect(1765:1:2300)
 dice2016_years = collect(model_years)
 
@@ -177,8 +163,8 @@ run(m)
 
 ## create DICE marginal model
 # mm = MimiDICE2016.get_model()
-mm = Mimi.create_marginal_model(m, 5 * 1e9)
-# mm = Mimi.create_marginal_model(m, 1e9)
+# mm = Mimi.create_marginal_model(m, 5 * 1e9)
+mm = Mimi.create_marginal_model(m, 1e9)
 run(mm)
 
 ## create FAIR marginal model -- try using create_marginal_model?
@@ -188,7 +174,6 @@ run(FAIR_mm)
 ## set pulse year
 pulse_year = 2060
 pulse_year_index = findall((in)([pulse_year]), collect(1765:2300))
-append!(pulse_year_index, collect(pulse_year_index[1]:1:pulse_year_index[1]+3))
 
 ## perturb CO2 emissions
 new_emissions = FAIR_mm[:co2_cycle, :E_CO₂]
@@ -217,4 +202,34 @@ run(mm.modified)
 # --------------------------------------------------
 
 MimiDICE2016._compute_scc(mm, year = pulse_year, last_year = 2300, prtp = 0.03, eta = 0.0)
+
+scc_usg1_1yr = MimiDICE2016._compute_scc(mm, year = pulse_year, last_year = 2300, prtp = 0.03, eta = 0.0)
+
+
+
+[scc_usg1,
+scc_usg2, 
+scc_usg3, 
+scc_usg4, 
+scc_usg5]
+
+
+
+
+# plot emissions
+
+original_FAIR_emissions = FAIR[:co2_cycle, :E_CO₂] # in GtC
+original_DICE2016_emissions = m[:emissions, :E] # RCP 85. In GtCO2
+DICE2016_emissions_GtC = m[:emissions, :E] .* 12/44
+
+plot(dice2016_years, DICE2016_emissions_GtC)
+plot(dice2016_years, original_DICE2016_emissions)
+plot(fair_years, original_FAIR_emissions)
+
+DICE = MimiDICE2016.get_model()
+run(DICE)
+dice_emissions = DICE[:emissions, :E]
+plot(model_years, dice_emissions, title = "DICE2016 Temperature Change")
+plot(model_years, DICE[:damages, :TATM], title = "DICE2016 Temperature Change")
+
 
