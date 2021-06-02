@@ -30,7 +30,7 @@ end
 function get_dicefair_marginal_model(;usg_scenario::String, pulse_year::Int)
     
     ## create DICE2016 marginal model
-    m = MimiDICE2016.get_dicefair()
+    m = MimiDICE2016.get_dicefair(usg_scenario = usg_scenario)
     mm = Mimi.create_marginal_model(m, 1e9)
     run(mm)
 
