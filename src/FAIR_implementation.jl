@@ -10,7 +10,7 @@ function get_dicefair(;usg_scenario::String)
     run(FAIR)
 
     fair_years = collect(1765:1:2300)
-    dice2016_years = collect(2015:5:2510)
+    dice2016_years = collect(2015:5:2510) # can sub in model_years
 
     temperature = DataFrame(year = fair_years, T = FAIR[:temperature, :T])
 
@@ -26,7 +26,7 @@ function get_dicefair(;usg_scenario::String)
 end
 
 ## function to get marginal DICE-FAIR model (i.e. input perturbed FAIR temperature vector into DICE2016)
-## note: FAIR-NCEE must be loaded in environment first!!
+## note: FAIR-NCEE must be loaded in environment!!
 function get_dicefair_marginal_model(;usg_scenario::String, pulse_year::Int)
     
     ## create DICE2016 marginal model
@@ -35,6 +35,8 @@ function get_dicefair_marginal_model(;usg_scenario::String, pulse_year::Int)
     run(mm)
 
     ## get perturbed FAIR temperature vector
+    fair_years = collect(1765:1:2300)
+    dice2016_years = collect(2015:5:2510) # or use model_years
     new_temperature = MimiFAIR.get_perturbed_fair_temperature(usg_scenario = usg_scenario, pulse_year = pulse_year)
     new_temperature_df = DataFrame(year = fair_years, T = new_temperature)
 
@@ -51,7 +53,7 @@ end
 
 ## compute SCC from DICE-FAIR
 function compute_scc_dicefair(;usg_scenario::String, pulse_year::Int, prtp::Float64, eta::Float64, last_year::Int=2300)
-    mm = MimiDICE2016.get_dicefair_marginal_model(usg_scenario::String, pulse_year::Int)
+    mm = MimiDICE2016.get_dicefair_marginal_model(usg_scenario = usg_scenario, pulse_year = pulse_year)
     scc = MimiDICE2016._compute_scc(mm, year = pulse_year, last_year = last_year, prtp = prtp, eta = eta)
     return(scc)
 end

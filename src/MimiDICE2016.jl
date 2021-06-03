@@ -2,10 +2,12 @@ module MimiDICE2016
 
 using Mimi
 using XLSX: readxlsx
+using MimiFAIR, DataFrames
 
 include("helpers.jl")
 include("parameters.jl")
 
+include("FAIR_implementation.jl")
 include("marginaldamage.jl")
 
 include("components/totalfactorproductivity_component.jl")
