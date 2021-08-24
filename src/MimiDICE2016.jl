@@ -2,14 +2,15 @@ module MimiDICE2016
 
 using Mimi
 using XLSX: readxlsx
-using MimiFAIR, DataFrames
+# using MimiFAIR
+using DataFrames
 using MimiIWG
 using CSVFiles
 
 include("helpers.jl")
 include("parameters.jl")
 
-include("FAIR_implementation.jl")
+# include("FAIR_implementation.jl")
 include("SSP_implementation_final.jl")
 include("marginaldamage.jl")
 
@@ -26,60 +27,6 @@ include("components/welfare_component.jl")
 export constructdice, getdiceexcel
 
 const model_years = 2015:5:2510
-# const model_years = 2015:5:2300
-
-function constructdicefair(params)
-
-    m = Model()
-    set_dimension!(m, :time, model_years)
-
-    #--------------------------------------------------------------------------
-    # Add components in order
-    #--------------------------------------------------------------------------
-
-    add_comp!(m, totalfactorproductivity, :totalfactorproductivity)
-    add_comp!(m, grosseconomy, :grosseconomy)
-    add_comp!(m, emissions, :emissions)
-    add_comp!(m, co2cycle, :co2cycle)
-    add_comp!(m, radiativeforcing, :radiativeforcing)
-    add_comp!(m, climatedynamics, :climatedynamics)
-    add_comp!(m, damages, :damages)
-    add_comp!(m, neteconomy, :neteconomy)
-    add_comp!(m, welfare, :welfare)
-
-    #--------------------------------------------------------------------------
-    # Make internal parameter connections
-    #--------------------------------------------------------------------------
-    
-    # Socioeconomics
-    connect_param!(m, :grosseconomy, :AL, :totalfactorproductivity, :AL)
-    connect_param!(m, :grosseconomy, :I, :neteconomy, :I)
-    connect_param!(m, :emissions, :YGROSS, :grosseconomy, :YGROSS)
-
-    # Climate
-    connect_param!(m, :co2cycle, :E, :emissions, :E)
-    connect_param!(m, :radiativeforcing, :MAT, :co2cycle, :MAT)
-    connect_param!(m, :climatedynamics, :FORC, :radiativeforcing, :FORC)
-
-    # Damages
-    connect_param!(m, :damages, :TATM, :climatedynamics, :TATM)
-    connect_param!(m, :damages, :YGROSS, :grosseconomy, :YGROSS)
-    connect_param!(m, :neteconomy, :YGROSS, :grosseconomy, :YGROSS)
-    connect_param!(m, :neteconomy, :DAMAGES, :damages, :DAMAGES)
-	connect_param!(m, :neteconomy, :SIGMA, :emissions, :SIGMA)
-    connect_param!(m, :welfare, :CPC, :neteconomy, :CPC)
-
-    #--------------------------------------------------------------------------
-    # Set external parameter values 
-    #--------------------------------------------------------------------------
-    for (name, value) in params
-        set_param!(m, name, value)
-    end
-    
-    return m
-
-end
-
 
 function constructdice(params)
 
